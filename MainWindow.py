@@ -7,7 +7,7 @@ import Screener
 
 
 class MainWindow(QMainWindow):
-    thread = QThread()
+    thread = QThread() # todo stabilise the thread
     screener = Screener.Screener()
     screener.moveToThread(thread)
 

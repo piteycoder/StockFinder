@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QGroupBox, QGridLayout, QListWidget, QListWidgetItem, QWidget, QLabel
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt
 import mplfinance as mpf
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -12,7 +12,7 @@ class ChartGroup(QGroupBox):
         self.list = QListWidget()
         self.__setLayout()
 
-    def plot(self, symbol: str, data: pd.DataFrame):
+    def plot(self, symbol: str, data: pd.DataFrame):  # todo optimise redrawing of the chart
         df = self.__prepareDataframe(data)
         fig, axlist = mpf.plot(df, returnfig=True,
                                volume=True,

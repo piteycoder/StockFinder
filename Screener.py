@@ -33,9 +33,7 @@ class Screener(QObject):
             self.query_data(symbol, then, today)
 
             # Signal processing and thread management
-            self.progress.emit(int(100 * (1 + index) / self.stocks.size))
-            if QThread.currentThread().isInterruptionRequested():
-                self.progress.emit(0)
+            if not self.manage_thread(progress=index):
                 break
         self.finished.emit()
 
@@ -47,11 +45,19 @@ class Screener(QObject):
         except finnhub.FinnhubAPIException:  # try again
             self.error.emit(f'There was a problem with the API, trying again...')
             QThread.currentThhread().sleep(1)
+            print(f'Problem with {symbol}')
             self.query_data(symbol, start, finish)
         except TypeError:
             self.error.emit(f'{symbol} not found.')
 
-    def calc_strat(self, symbol: str):
+    def manage_thread(self, progress):
+        self.progress.emit(int(100 * (1 + progress) / self.stocks.size))
+        if QThread.currentThread().isInterruptionRequested():
+            self.progress.emit(0)
+            return False
+        return True
+
+    def calc_strat(self, symbol: str): # todo make the strat narrow down to just a couple of stocks, not dozens
         try:
             if self.all_symbols_data[symbol].iloc[-3]['l'] > \
                     self.all_symbols_data[symbol].iloc[-2]['l'] < \
