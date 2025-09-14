@@ -11,18 +11,25 @@ class ChartGroup(QGroupBox):
         super().__init__()
         self.list = QListWidget()
         self.__setLayout()
+        self.__plotRef = None
 
     def plot(self, symbol: str, data: pd.DataFrame):  # todo optimise redrawing of the chart
-        df = self.__prepareDataframe(data)
-        fig, axlist = mpf.plot(df, returnfig=True,
-                               volume=True,
-                               style='binance',
-                               title=f'{symbol} 1D',
-                               figratio=(10, 5),
-                               show_nontrading=True,
-                               mav=100,
-                               tight_layout=True)
-        self.canvas.figure = fig
+        try:
+            df = self.__prepareDataframe(data)
+            fig, axlist = mpf.plot(df, returnfig=True,
+                                   volume=True,
+                                   style='binance',
+                                   title=f'{symbol} 1D',
+                                   figratio=(10, 5),
+                                   show_nontrading=True,
+                                   mav=100,
+                                   tight_layout=True)
+            self.updatePlot(fig)
+        except Exception as e:
+            print(f'Error: {e}')
+
+    def updatePlot(self, figure):
+        self.canvas.figure = figure
         toolbar = NavigationToolbar(self.canvas, self)
         self.layout.removeItem(self.layout.itemAtPosition(0, 0))
         self.layout.addWidget(toolbar, 0, 0)
@@ -34,6 +41,8 @@ class ChartGroup(QGroupBox):
     def __setLayout(self):
         self.layout = QGridLayout()
         self.canvas = FigureCanvas()
+        self.toolbar = NavigationToolbar(self.canvas, self)
+        self.layout.addWidget(self.toolbar, 0, 0)
         self.layout.addWidget(self.canvas, 1, 0)
         self.layout.addWidget(self.list, 1, 1)
         self.layout.addWidget(QLabel("Consider these tickers:"), 0, 1, alignment=Qt.AlignBottom)
@@ -46,7 +55,7 @@ class ChartGroup(QGroupBox):
 
     def __prepareDataframe(self, data: pd.DataFrame):
         df = pd.DataFrame(data)
-        df['t'] = pd.to_datetime(df['t'], unit='s')
+        df['t'] = pd.to_datetime(df['t'], format="ISO8601")
         df.set_index('t', inplace=True)
         df.rename(columns={
             "c": "close",

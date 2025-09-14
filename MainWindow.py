@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
     def __setGeometry(self):
         screen = QApplication.instance().primaryScreen()
         geometry = screen.availableGeometry()
-        self.setBaseSize(geometry.width()*0.8, geometry.height()*0.8)
+        self.setBaseSize(int(geometry.width()*0.8), int(geometry.height()*0.8))
 
     def __setLayout(self):
         mainWidget = QWidget()
@@ -38,7 +38,7 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("Welcome to StockScreener app!")
 
     def __setAttributes(self):
-        self.setWindowTitle('Stock Screener V1.0')
+        self.setWindowTitle('Stock Screener V1.1')
         self.setWindowIcon(QtGui.QIcon('data/icon.ico'))
 
     def __setMenuGroup(self):
@@ -80,5 +80,4 @@ class MainWindow(QMainWindow):
         QApplication.instance().exit()
 
     def __plot(self, item: QListWidgetItem):
-        symbol = item.text()
-        self.chartGroup.plot(symbol, self.screener.all_symbols_data[symbol])
+        self.chartGroup.plot(item.text(), self.screener.all_symbols_data[item.text()])

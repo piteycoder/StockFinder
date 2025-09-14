@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 import time
-import finnhub
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 from StockFinder import StockFinder
 
@@ -19,39 +18,43 @@ class Screener(QObject):
         self.all_symbols_data = {}
         self.longs = []
         self.shorts = []
+        self.missed = set()
 
     def find_fitting(self):
         # define the amount of days data we want to scrape
-        today = int(datetime.timestamp(datetime.utcnow()))
-        then = int(datetime.timestamp((datetime.utcnow()-timedelta(days=250))))
+        today = datetime.today().strftime('%Y-%m-%d')
+        then = (datetime.today() - timedelta(days=150)).strftime('%Y-%m-%d')
 
         # main scrape loop, calls for data for each symbol, takes about 15 minutes
-        for index, symbol in self.stocks.items():
-            symbol = symbol.partition('.')
-            symbol = symbol[0]
-            QThread.currentThread().sleep(1)
+        index = 0
+        for symbol in self.stocks:
+            QThread.currentThread().msleep(50)
             self.query_data(symbol, then, today)
-
             # Signal processing and thread management
             if not self.manage_thread(progress=index):
                 break
+            index += 1
         self.finished.emit()
 
     def query_data(self, symbol, start, finish):
-        # Query data from Finnhub, handle exceptions
+        # Query data from Alpaca, handle exceptions
         try:
-            self.all_symbols_data[symbol] = self.sf.get_candles(symbol, 'D', start, finish)
-            self.calc_strat(symbol)
-        except finnhub.FinnhubAPIException:  # try again
-            self.error.emit(f'There was a problem with the API, trying again...')
-            QThread.currentThhread().sleep(1)
-            print(f'Problem with {symbol}')
-            self.query_data(symbol, start, finish)
+            response = self.sf.get_candles(symbol, '1D', start, finish)
+            if type(response) is KeyError:
+                self.missed.add(symbol)
+                # todo Inform the user about missed tickers and ask if they should be removed from source file
+            else:
+                self.all_symbols_data[symbol] = self.sf.get_candles(symbol, '1D', start, finish)
+                self.calc_strat(symbol)
+
         except TypeError:
             self.error.emit(f'{symbol} not found.')
 
+        except Exception as e:
+            self.error.emit(f'Unexpected: "{e}" error occured.')
+
     def manage_thread(self, progress):
-        self.progress.emit(int(100 * (1 + progress) / self.stocks.size))
+        self.progress.emit(int(100 * (1 + progress) / len(self.stocks)))
         if QThread.currentThread().isInterruptionRequested():
             self.progress.emit(0)
             return False
